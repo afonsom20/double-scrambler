@@ -61,6 +61,37 @@ def side_by_side_plot(images, title):
         axes[k].imshow(images[v], cmap=colormap)
         axes[k].set_title(v.title())
 
+binsize = (20, 20)
+
+bins = [{'x0': (k-2)*binsize[0], 'y0': int(-binsize[1]/2), 'x1': (k-1)*binsize[0], 'y1': int(binsize[1]/2)} for k in range(0,4)]
+
+def clip_bin(image, center, bins):
+    bindata = []
+    for b in bins:
+        bindata.append(image[(center[1]+b['y0']):(center[1]+b['y1']),
+                        (center[0]+b['x0']):(center[0]+b['x1'])])
+    return np.array(bindata)
+
+def take_image_bins(images, frame, bins):
+    imagebins = {k: np.mean(clip_bin(img, frame['center'], bins), axis=(1,2)) for k, img in images.items()}
+    return imagebins
+
+def add_ratios(image_bins):
+    for k, v in image_bins.items():
+        image_bins[k] = np.append(v,[abs((v[0]+v[3])/(v[1]+v[2])-1), abs((v[0]+v[1])/(v[2]+v[3])-1)])
+
+def get_image_bins_and_ratios(images, frame, bins):
+    ib = take_image_bins(images, frame, bins)
+    add_ratios(ib)
+    return ib
+
+def print_bin_values(title, image_bins):
+    print(title)
+    print('input, bin 1, bin 2, bin 3, bin 4, radial scrambling, aximuthal scrambling')
+    for k, values in image_bins.items():
+        print(f"{k}, {','.join([str(v) for v in values])}")
+
+
 # PLOTS
 colormap = "gray_r"
 
@@ -77,8 +108,8 @@ nf_images = {
     'right': fits.getdata("near field right.fits"),
     'top': fits.getdata("near field top.fits"),
     'bottom': fits.getdata("near field bottom.fits"),
-    'clockwise': fits.getdata("near field bottom.fits"),
-    'counterclockwise': fits.getdata("near field bottom.fits"),
+    'clockwise': fits.getdata("near field angle 1.fits"),
+    'counterclockwise': fits.getdata("near field angle 2.fits"),
 }
 # NEAR FIELD OPERATIONS
 nf_div_images = div_by_ref(nf_images)
@@ -122,6 +153,8 @@ ff_ds_images = {
 # NEAR FIELD OPERATIONS
 ff_ds_div_images = div_by_ref(ff_ds_images)
 
+
+
 # CLIP AND PLOT NEAR FIELD
 nf_frame = frame_image(nf_images, nf_bright_threshold)
 nf_cliped_div_images = clip_images(nf_div_images, nf_frame)
@@ -141,5 +174,16 @@ side_by_side_plot(nf_ds_cliped_div_images, 'Near Field Divided Views With Double
 ff_ds_frame = frame_image(ff_ds_images, ff_ds_bright_threshold)
 ff_ds_cliped_div_images = clip_images(ff_ds_div_images, ff_ds_frame)
 side_by_side_plot(ff_ds_cliped_div_images, 'Far Field Divided Views With Double Scrambler')
+
+# BINS
+nf_image_bins = get_image_bins_and_ratios(nf_div_images, nf_frame, bins)
+ff_image_bins = get_image_bins_and_ratios(ff_div_images, ff_frame, bins)
+nf_ds_image_bins = get_image_bins_and_ratios(nf_ds_div_images, nf_ds_frame, bins)
+ff_ds_image_bins = get_image_bins_and_ratios(ff_ds_div_images, ff_ds_frame, bins)
+
+print_bin_values('Near Field', nf_image_bins)
+print_bin_values('Far Field', ff_image_bins)
+print_bin_values('Near Field, Double Scrambler', nf_ds_image_bins)
+print_bin_values('Far Field, Double Scrambler', ff_ds_image_bins)
 
 plt.show()
