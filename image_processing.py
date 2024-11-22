@@ -117,6 +117,13 @@ def print_bin_values(title, image_bins):
         print(f"{k}, {','.join([str(v) for v in values])}")
 
 
+def bin_vertices(binsize, scale=(1,1)):
+    binsizex = int(binsize[0]*scale[0])
+    binsizey_half = int(binsize[1]*scale[1]/2)
+    bins = [{'x0': (k-2)*binsizex, 'y0': -binsizey_half, 'x1': (k-1)*binsizex, 'y1': binsizey_half} for k in range(0,4)]
+    return bins
+
+
 ############
 # SETTINGS #
 ############
@@ -135,8 +142,7 @@ ff_ds_bright_threshold = 250
 binsize = (20, 20)
 
 # ... and the bin defining vertices are
-bins = [{'x0': (k-2)*binsize[0], 'y0': int(-binsize[1]/2), 'x1': (k-1)*binsize[0], 'y1': int(binsize[1]/2)} for k in range(0,4)]
-
+bins = bin_vertices(binsize)
 
 ###################
 # LOAD IMAGE DATA #
@@ -214,7 +220,10 @@ nf_ds_cliped_div_images = clip_images(nf_ds_div_images, nf_ds_frame)
 ff_ds_frame = frame_image(ff_ds_images, ff_ds_bright_threshold)
 ff_ds_cliped_div_images = clip_images(ff_ds_div_images, ff_ds_frame)
 
-# BINS
+# BINS (fixed to 20 x 20)
+# The can be adjusted to image size by
+# scale = 20 * (the_frame['xlims'][1] - the_frame['xlims'][0]) / (nf_frame['xlims'][1] - nf_frame['xlims'][0])
+# bins = bin_vertices(binsize, (scale, scale))
 nf_image_bins = get_image_bins_and_ratios(nf_div_images, nf_frame, bins)
 ff_image_bins = get_image_bins_and_ratios(ff_div_images, ff_frame, bins)
 nf_ds_image_bins = get_image_bins_and_ratios(nf_ds_div_images, nf_ds_frame, bins)
